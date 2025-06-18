@@ -21,6 +21,8 @@ import logging
 import atexit
 
 import httpx
+# Set required environment variable for FastMCP 2.8.1+
+os.environ.setdefault('FASTMCP_LOG_LEVEL', 'INFO')
 from fastmcp import Context, FastMCP
 from pydantic import BaseModel, Field
 

@@ -1,6 +1,6 @@
 [project]
 name = "a2a_mcp_server"
-version = "0.1.2"
+version = "0.1.5"
 description = "A bridge server that connects Model Context Protocol (MCP) with Agent-to-Agent (A2A) protocol"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -31,7 +31,7 @@ dependencies = [
     "starlette>=0.46.1",
     "typing-extensions>=4.12.2",
     "uvicorn>=0.34.0",
-    "fastmcp>=2.3.4",
+    "fastmcp>=2.8.1",
 ]
 
 [project.urls]
