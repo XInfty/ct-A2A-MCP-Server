@@ -499,7 +499,7 @@ async def send_message(
             logger.info(f"[A2A-MCP] actual_result is dict: {actual_result}")
 
         # Extract task_id from server response (A2A SDK v0.3.0: server generates task ID)
-        # actual_result can be Task (with .id) or Message (with .taskId)
+        # actual_result can be Task (with .id) or Message (with .taskId or .contextId)
         task_id = None
         if hasattr(actual_result, "id") and actual_result.id:
             # Response is a Task object
@@ -509,6 +509,10 @@ async def send_message(
             # Response is a Message object with taskId
             task_id = actual_result.taskId
             logger.info(f"[A2A-MCP] Extracted task_id from .taskId: {task_id}")
+        elif hasattr(actual_result, "contextId") and actual_result.contextId:
+            # Fallback: Use contextId as identifier (A2A SDK v0.3.0 Message without taskId)
+            task_id = actual_result.contextId
+            logger.info(f"[A2A-MCP] Extracted task_id from .contextId (fallback): {task_id}")
 
         if not task_id:
             return {
@@ -538,20 +542,29 @@ async def send_message(
         try:
             if hasattr(actual_result, "status") and hasattr(actual_result.status, "state"):
                 response["state"] = actual_result.status.state
+            elif hasattr(actual_result, "kind") and actual_result.kind == "message":
+                # Message response indicates completed state
+                response["state"] = "completed"
             else:
                 response["state"] = "unknown"
         except Exception as e:
             response["state"] = f"error_getting_state: {str(e)}"
-            
+
         # Try to extract response message
         try:
+            response_text = ""
+            # Case 1: Task with status.message
             if hasattr(actual_result, "status") and hasattr(actual_result.status, "message") and actual_result.status.message:
-                response_text = ""
                 for part in actual_result.status.message.parts:
                     if part.kind == "text":
                         response_text += part.text
-                if response_text:
-                    response["message"] = response_text
+            # Case 2: Direct Message response (A2A SDK v0.3.0)
+            elif hasattr(actual_result, "parts") and actual_result.parts:
+                for part in actual_result.parts:
+                    if part.kind == "text":
+                        response_text += part.text
+            if response_text:
+                response["message"] = response_text
         except Exception as e:
             response["message_error"] = f"Error extracting message: {str(e)}"
 
