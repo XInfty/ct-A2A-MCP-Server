@@ -24,7 +24,7 @@ class TaskState(str, Enum):
 
 
 class TextPart(BaseModel):
-    type: Literal['text'] = 'text'
+    kind: Literal['text'] = 'text'  # A2A SDK v0.3.0 uses 'kind' not 'type'
     text: str
     metadata: dict[str, Any] | None = None
 
@@ -49,18 +49,18 @@ class FileContent(BaseModel):
 
 
 class FilePart(BaseModel):
-    type: Literal['file'] = 'file'
+    kind: Literal['file'] = 'file'  # A2A SDK v0.3.0 uses 'kind' not 'type'
     file: FileContent
     metadata: dict[str, Any] | None = None
 
 
 class DataPart(BaseModel):
-    type: Literal['data'] = 'data'
+    kind: Literal['data'] = 'data'  # A2A SDK v0.3.0 uses 'kind' not 'type'
     data: dict[str, Any]
     metadata: dict[str, Any] | None = None
 
 
-Part = Annotated[TextPart | FilePart | DataPart, Field(discriminator='type')]
+Part = Annotated[TextPart | FilePart | DataPart, Field(discriminator='kind')]  # v0.3.0: 'kind' discriminator
 
 
 class Message(BaseModel):
