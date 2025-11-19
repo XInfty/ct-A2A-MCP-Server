@@ -476,16 +476,27 @@ async def send_message(
         result = await client.send_task(payload)
 
         # Debug: Print the raw response for analysis
+        logger.info(f"[A2A-MCP] Raw response type: {type(result)}")
+        logger.info(f"[A2A-MCP] Raw response: {result}")
         if ctx:
             await ctx.info(f"Raw response: {result}")
 
         # Extract the actual result (Task or Message) from SendTaskResponse
         actual_result = result.result
+        logger.info(f"[A2A-MCP] actual_result type: {type(actual_result)}")
+        logger.info(f"[A2A-MCP] actual_result: {actual_result}")
+
         if not actual_result:
             return {
                 "status": "error",
                 "message": "Server returned empty result",
             }
+
+        # Debug: Check what fields actual_result has
+        if hasattr(actual_result, '__dict__'):
+            logger.info(f"[A2A-MCP] actual_result fields: {actual_result.__dict__}")
+        elif isinstance(actual_result, dict):
+            logger.info(f"[A2A-MCP] actual_result is dict: {actual_result}")
 
         # Extract task_id from server response (A2A SDK v0.3.0: server generates task ID)
         # actual_result can be Task (with .id) or Message (with .taskId)
@@ -493,9 +504,11 @@ async def send_message(
         if hasattr(actual_result, "id") and actual_result.id:
             # Response is a Task object
             task_id = actual_result.id
+            logger.info(f"[A2A-MCP] Extracted task_id from .id: {task_id}")
         elif hasattr(actual_result, "taskId") and actual_result.taskId:
             # Response is a Message object with taskId
             task_id = actual_result.taskId
+            logger.info(f"[A2A-MCP] Extracted task_id from .taskId: {task_id}")
 
         if not task_id:
             return {

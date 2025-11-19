@@ -76,11 +76,11 @@ class Message(BaseModel):
 class TaskStatus(BaseModel):
     state: TaskState
     message: Message | None = None
-    timestamp: datetime = Field(default_factory=datetime.now)
+    timestamp: datetime | None = Field(default_factory=datetime.now)
 
     @field_serializer('timestamp')
-    def serialize_dt(self, dt: datetime, _info):
-        return dt.isoformat()
+    def serialize_dt(self, dt: datetime | None, _info):
+        return dt.isoformat() if dt else None
 
 
 class Artifact(BaseModel):
