@@ -278,18 +278,32 @@ async def fetch_agent_card(url: str) -> AgentCard:
         except Exception:
             pass  # Connection error, try the well-known URL
         
-        # Try the well-known location
-        well_known_url = f"{url.rstrip('/')}/.well-known/agent.json"
-        try:
-            response = await client.get(well_known_url)
-            if response.status_code == 200:
-                try:
-                    data = response.json()
-                    return AgentCard(**data)
-                except json.JSONDecodeError:
-                    raise ValueError(f"Invalid JSON in agent card from {well_known_url}")
-        except httpx.RequestError as e:
-            raise ValueError(f"Failed to fetch agent card from {well_known_url}: {str(e)}")
+        # Try well-known locations: v0.3.0 path first, then v0.2.x fallback
+        paths_to_try = [
+            "/.well-known/agent-card.json",  # v0.3.0+
+            "/.well-known/agent.json"         # v0.2.x fallback
+        ]
+
+        last_error = None
+        for path in paths_to_try:
+            well_known_url = f"{url.rstrip('/')}{path}"
+            try:
+                response = await client.get(well_known_url)
+                if response.status_code == 200:
+                    try:
+                        data = response.json()
+                        return AgentCard(**data)
+                    except json.JSONDecodeError:
+                        last_error = ValueError(f"Invalid JSON in agent card from {well_known_url}")
+                        continue
+                elif response.status_code == 404:
+                    continue  # Try next path
+            except httpx.RequestError as e:
+                last_error = ValueError(f"Failed to fetch agent card from {well_known_url}: {str(e)}")
+                continue
+
+        if last_error:
+            raise last_error
     
     # If we can't get the agent card, create a minimal one with default values
     return AgentCard(
