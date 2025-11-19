@@ -92,8 +92,10 @@ class Artifact(BaseModel):
 
 class Task(BaseModel):
     id: str
+    contextId: str | None = None  # A2A SDK v0.3.0: context_id for maintaining context across tasks
     sessionId: str | None = None
     status: TaskStatus
+    kind: Literal['task'] = 'task'  # A2A SDK v0.3.0: type discriminator
     artifacts: list[Artifact] | None = None
     history: list[Message] | None = None
     metadata: dict[str, Any] | None = None
