@@ -516,7 +516,7 @@ async def send_message(
             if hasattr(result, "status") and hasattr(result.status, "message") and result.status.message:
                 response_text = ""
                 for part in result.status.message.parts:
-                    if part.type == "text":
+                    if part.kind == "text":
                         response_text += part.text
                 if response_text:
                     response["message"] = response_text
@@ -534,12 +534,12 @@ async def send_message(
                     }
                     
                     for part in artifact.parts:
-                        if part.type == "text":
+                        if part.kind == "text":
                             artifact_data["contents"].append({
                                 "type": "text",
                                 "text": part.text,
                             })
-                        elif part.type == "data":
+                        elif part.kind == "data":
                             artifact_data["contents"].append({
                                 "type": "data",
                                 "data": part.data,
@@ -630,7 +630,7 @@ async def get_task_result(
                     if hasattr(status, "message") and status.message:
                         response_text = ""
                         for part in status.message.parts:
-                            if part.type == "text":
+                            if part.kind == "text":
                                 response_text += part.text
                         if response_text:
                             response["message"] = response_text
@@ -645,12 +645,12 @@ async def get_task_result(
                         }
                         
                         for part in artifact.parts:
-                            if part.type == "text":
+                            if part.kind == "text":
                                 artifact_data["contents"].append({
                                     "type": "text",
                                     "text": part.text,
                                 })
-                            elif part.type == "data":
+                            elif part.kind == "data":
                                 artifact_data["contents"].append({
                                     "type": "data",
                                     "data": part.data,
@@ -670,7 +670,7 @@ async def get_task_result(
                         }
                         
                         for part in message.parts:
-                            if part.type == "text":
+                            if part.kind == "text":
                                 message_data["parts"].append({
                                     "type": "text",
                                     "text": part.text,
@@ -863,7 +863,7 @@ async def send_message_stream(
                         if hasattr(status_event, "status") and hasattr(status_event.status, "message") and status_event.status.message:
                             message_text = ""
                             for part in status_event.status.message.parts:
-                                if part.type == "text":
+                                if part.kind == "text":
                                     message_text += part.text
                             
                             if message_text:
@@ -886,12 +886,12 @@ async def send_message_stream(
                         }
                         
                         for part in artifact_event.artifact.parts:
-                            if part.type == "text":
+                            if part.kind == "text":
                                 artifact_data["contents"].append({
                                     "type": "text",
                                     "text": part.text,
                                 })
-                            elif part.type == "data":
+                            elif part.kind == "data":
                                 artifact_data["contents"].append({
                                     "type": "data",
                                     "data": part.data,
