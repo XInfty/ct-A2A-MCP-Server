@@ -67,6 +67,9 @@ class Message(BaseModel):
     role: Literal['user', 'agent']
     parts: list[Part]
     messageId: str | None = None  # Required for A2A SDK v0.3.0
+    contextId: str | None = None  # A2A SDK v0.3.0
+    taskId: str | None = None  # A2A SDK v0.3.0
+    kind: Literal['message'] = 'message'  # A2A SDK v0.3.0: type discriminator
     metadata: dict[str, Any] | None = None
 
 
@@ -181,7 +184,7 @@ class SendTaskRequest(JSONRPCRequest):
 
 
 class SendTaskResponse(JSONRPCResponse):
-    result: Task | None = None
+    result: Task | Message | None = None  # A2A SDK v0.3.0: can return Task or direct Message
 
 
 class SendTaskStreamingRequest(JSONRPCRequest):
