@@ -253,6 +253,7 @@ class A2ABridgeTaskManager(InMemoryTaskManager):
                     message=Message(
                         role="agent",
                         parts=[TextPart(text=f"Error forwarding task: {str(e)}")],
+                        messageId=str(uuid.uuid4()),  # Required for A2A SDK v0.3.0
                     ),
                 ),
                 final=True,
@@ -465,6 +466,7 @@ async def send_message(
         a2a_message = Message(
             role="user",
             parts=[TextPart(text=message)],
+            messageId=str(uuid.uuid4()),  # Required for A2A SDK v0.3.0
         )
         
         if ctx:
@@ -806,6 +808,7 @@ async def send_message_stream(
         a2a_message = Message(
             role="user",
             parts=[TextPart(text=message)],
+            messageId=str(uuid.uuid4()),  # Required for A2A SDK v0.3.0
         )
         
         if ctx:

@@ -66,6 +66,7 @@ Part = Annotated[TextPart | FilePart | DataPart, Field(discriminator='type')]
 class Message(BaseModel):
     role: Literal['user', 'agent']
     parts: list[Part]
+    messageId: str | None = None  # Required for A2A SDK v0.3.0
     metadata: dict[str, Any] | None = None
 
 
