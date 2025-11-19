@@ -479,14 +479,23 @@ async def send_message(
         if ctx:
             await ctx.info(f"Raw response: {result}")
 
+        # Extract the actual result (Task or Message) from SendTaskResponse
+        actual_result = result.result
+        if not actual_result:
+            return {
+                "status": "error",
+                "message": "Server returned empty result",
+            }
+
         # Extract task_id from server response (A2A SDK v0.3.0: server generates task ID)
+        # actual_result can be Task (with .id) or Message (with .taskId)
         task_id = None
-        if hasattr(result, "id"):
+        if hasattr(actual_result, "id") and actual_result.id:
             # Response is a Task object
-            task_id = result.id
-        elif hasattr(result, "taskId") and result.taskId:
+            task_id = actual_result.id
+        elif hasattr(actual_result, "taskId") and actual_result.taskId:
             # Response is a Message object with taskId
-            task_id = result.taskId
+            task_id = actual_result.taskId
 
         if not task_id:
             return {
@@ -505,17 +514,17 @@ async def send_message(
             "status": "success",
             "task_id": task_id,
         }
-        
-        # Add any available fields from the result
-        if hasattr(result, "sessionId"):
-            response["session_id"] = result.sessionId
+
+        # Add any available fields from the actual result
+        if hasattr(actual_result, "sessionId"):
+            response["session_id"] = actual_result.sessionId
         else:
             response["session_id"] = None
-            
+
         # Try to get the state
         try:
-            if hasattr(result, "status") and hasattr(result.status, "state"):
-                response["state"] = result.status.state
+            if hasattr(actual_result, "status") and hasattr(actual_result.status, "state"):
+                response["state"] = actual_result.status.state
             else:
                 response["state"] = "unknown"
         except Exception as e:
@@ -523,21 +532,21 @@ async def send_message(
             
         # Try to extract response message
         try:
-            if hasattr(result, "status") and hasattr(result.status, "message") and result.status.message:
+            if hasattr(actual_result, "status") and hasattr(actual_result.status, "message") and actual_result.status.message:
                 response_text = ""
-                for part in result.status.message.parts:
+                for part in actual_result.status.message.parts:
                     if part.kind == "text":
                         response_text += part.text
                 if response_text:
                     response["message"] = response_text
         except Exception as e:
             response["message_error"] = f"Error extracting message: {str(e)}"
-        
+
         # Try to get artifacts
         try:
-            if hasattr(result, "artifacts") and result.artifacts:
+            if hasattr(actual_result, "artifacts") and actual_result.artifacts:
                 artifacts_data = []
-                for artifact in result.artifacts:
+                for artifact in actual_result.artifacts:
                     artifact_data = {
                         "name": artifact.name if hasattr(artifact, "name") else "unnamed_artifact",
                         "contents": [],
@@ -803,44 +812,36 @@ async def send_message_stream(
     
     # Create a client for the agent
     client = A2AClient(url=agent_url)
-    
+
     try:
-        # Generate a task ID
-        task_id = str(uuid.uuid4())
-        
-        # Store the mapping of task_id to agent_url for later reference
-        task_agent_mapping[task_id] = agent_url
-        
-        # Save the task mapping to disk
-        save_to_json(task_agent_mapping, TASK_AGENT_MAPPING_FILE)
-        
-        # Create the message
+        # Create the message with a unique messageId
         a2a_message = Message(
             role="user",
             parts=[TextPart(text=message)],
             messageId=str(uuid.uuid4()),  # Required for A2A SDK v0.3.0
         )
-        
+
         if ctx:
             await ctx.info(f"Sending message to agent (streaming): {message}")
-            
+
         # Start progress indication
         if ctx:
             await ctx.info("Processing...")
-        
+
         # Dictionary to accumulate streaming responses
+        # task_id will be extracted from first event (server-generated per A2A SDK v0.3.0)
         complete_response = {
             "status": "success",
-            "task_id": task_id,
+            "task_id": None,  # Will be set from first event
             "session_id": session_id,
             "state": "working",
             "messages": [],
             "artifacts": [],
         }
-        
-        # Create payload as a single dictionary
+
+        # Create payload according to A2A SDK v0.3.0 spec
+        # Note: task_id is generated by the SERVER, not the client
         payload = {
-            "id": task_id,
             "message": a2a_message,
         }
         if session_id:
@@ -852,15 +853,37 @@ async def send_message_stream(
         # Process and report stream events
         try:
             all_events = []
-            
+
             async for event in stream:
                 # Save all events for debugging
                 all_events.append({
                     "type": str(type(event)),
                     "dir": str(dir(event)),
                 })
-                
+
                 if hasattr(event, "result"):
+                    # Extract task_id from first event (server-generated per A2A SDK v0.3.0)
+                    if complete_response["task_id"] is None:
+                        event_result = event.result
+                        if hasattr(event_result, "id") and event_result.id:
+                            # Task object
+                            task_id = event_result.id
+                            complete_response["task_id"] = task_id
+                            # Store mapping and save
+                            task_agent_mapping[task_id] = agent_url
+                            save_to_json(task_agent_mapping, TASK_AGENT_MAPPING_FILE)
+                            if ctx:
+                                await ctx.info(f"Received task_id from server: {task_id}")
+                        elif hasattr(event_result, "task_id") and event_result.task_id:
+                            # Event with task_id field
+                            task_id = event_result.task_id
+                            complete_response["task_id"] = task_id
+                            # Store mapping and save
+                            task_agent_mapping[task_id] = agent_url
+                            save_to_json(task_agent_mapping, TASK_AGENT_MAPPING_FILE)
+                            if ctx:
+                                await ctx.info(f"Received task_id from server: {task_id}")
+
                     if hasattr(event.result, "status"):
                         # It's a TaskStatusUpdateEvent
                         status_event = event.result
