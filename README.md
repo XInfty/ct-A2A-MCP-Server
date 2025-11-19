@@ -16,6 +16,8 @@ This project serves as an integration layer between two cutting-edge AI agent pr
 
 By bridging these protocols, this server allows MCP clients (like Claude) to discover, register, communicate with, and manage tasks on A2A agents through a unified interface.
 
+**Note**: This server supports A2A SDK v0.3.0 with backward compatibility for v0.2.x agents.
+
 ### Demo
 
 #### 1, Run The Currency Agent in A2A Sample
@@ -450,7 +452,7 @@ The server provides detailed error messages for common issues:
 
 If an agent can't be registered:
 - Verify the agent URL is correct and accessible
-- Check if the agent has a proper agent card at `/.well-known/agent.json`
+- Check if the agent has a proper agent card at `/.well-known/agent-card.json` (v0.3.0) or `/.well-known/agent.json` (v0.2.x)
 
 ### Message Delivery Problems
 
