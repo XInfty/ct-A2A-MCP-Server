@@ -475,16 +475,8 @@ async def send_message(
         # Send the task with the payload
         result = await client.send_task(payload)
 
-        # Debug: Print the raw response for analysis
-        logger.info(f"[A2A-MCP] Raw response type: {type(result)}")
-        logger.info(f"[A2A-MCP] Raw response: {result}")
-        if ctx:
-            await ctx.info(f"Raw response: {result}")
-
         # Extract the actual result (Task or Message) from SendTaskResponse
         actual_result = result.result
-        logger.info(f"[A2A-MCP] actual_result type: {type(actual_result)}")
-        logger.info(f"[A2A-MCP] actual_result: {actual_result}")
 
         if not actual_result:
             return {
@@ -492,27 +484,18 @@ async def send_message(
                 "message": "Server returned empty result",
             }
 
-        # Debug: Check what fields actual_result has
-        if hasattr(actual_result, '__dict__'):
-            logger.info(f"[A2A-MCP] actual_result fields: {actual_result.__dict__}")
-        elif isinstance(actual_result, dict):
-            logger.info(f"[A2A-MCP] actual_result is dict: {actual_result}")
-
         # Extract task_id from server response (A2A SDK v0.3.0: server generates task ID)
-        # actual_result can be Task (with .id) or Message (with .taskId or .contextId)
+        # A2A spec: message/send returns Task object with .id
         task_id = None
         if hasattr(actual_result, "id") and actual_result.id:
-            # Response is a Task object
+            # Response is a Task object (spec-compliant)
             task_id = actual_result.id
-            logger.info(f"[A2A-MCP] Extracted task_id from .id: {task_id}")
         elif hasattr(actual_result, "taskId") and actual_result.taskId:
-            # Response is a Message object with taskId
+            # Legacy: Message object with taskId
             task_id = actual_result.taskId
-            logger.info(f"[A2A-MCP] Extracted task_id from .taskId: {task_id}")
         elif hasattr(actual_result, "contextId") and actual_result.contextId:
-            # Fallback: Use contextId as identifier (A2A SDK v0.3.0 Message without taskId)
+            # Fallback: Use contextId as identifier
             task_id = actual_result.contextId
-            logger.info(f"[A2A-MCP] Extracted task_id from .contextId (fallback): {task_id}")
 
         if not task_id:
             return {
